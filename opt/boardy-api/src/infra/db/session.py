@@ -13,8 +13,8 @@ from ..config import Settings, get_settings
 def create_engine(settings: Settings | None = None) -> AsyncEngine:
     active_settings = settings or get_settings()
     return create_async_engine(
-        str(active_settings.db_mysql_url),
-        echo=False,
+        str(active_settings.db.mysql_url),
+        echo=active_settings.db.echo,
     )
 
 
