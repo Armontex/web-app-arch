@@ -15,7 +15,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         init=False,
         server_default=text("CURRENT_TIMESTAMP"),
