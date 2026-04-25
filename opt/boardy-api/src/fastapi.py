@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from src.infra.config import get_settings
 from src.infra.db import create_session_factory, create_engine
+from src.infra.logging import configure_access_logging
 
 from src.infra.db.base import Base
 import src.infra.db.models
@@ -29,6 +30,8 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():
+    configure_access_logging()
+
     settings = get_settings()
 
     app = FastAPI(
