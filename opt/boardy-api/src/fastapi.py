@@ -4,6 +4,10 @@ from contextlib import asynccontextmanager
 
 from src.infra.config import get_settings
 from src.infra.db import create_session_factory, create_engine
+from src.infra.logging import configure_access_logging
+
+from src.infra.db.base import Base
+import src.infra.db.models
 
 from src.presentation.routers import router as api_router
 
@@ -12,6 +16,9 @@ from src.presentation.routers import router as api_router
 async def lifespan(app: FastAPI):
     engine = create_engine(app.state.settings)
     session_maker = create_session_factory(engine)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     app.state.session_maker = session_maker
     app.state.engine = engine
@@ -23,12 +30,14 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():
+    configure_access_logging()
+
     settings = get_settings()
 
     app = FastAPI(
         title="Boardy API",
-        version="0.2.0",
-        debug=settings.debug,
+        version="1.0.0",
+        debug=settings.app.debug,
         lifespan=lifespan,
     )
 
