@@ -18,6 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   if ($name === '' || $email === '' || $password === '') {
     $error_message = 'Заполните все поля.';
+  } elseif (mb_strlen($password) < 6) {
+    $error_message = 'Пароль должен содержать минимум 6 символов.';
   } else {
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
     $stmt->execute([$email]);

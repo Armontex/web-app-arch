@@ -23,10 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        $password_valid = $user && (
-            password_verify($password, $user['password_hash']) ||
-            hash_equals((string) $user['password_hash'], $password)
-        );
+        $password_valid = $user && password_verify($password, $user['password_hash']);
 
         if (!$password_valid) {
             $error_message = 'Неверный email или пароль.';
