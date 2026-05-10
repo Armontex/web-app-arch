@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth import get_current_user
 from database import Comment, Post, User
 
 
@@ -65,6 +66,7 @@ async def get_comments(
 async def create_comment(
     post_id: int,
     data: CommentCreate,
+    user: dict[str, object] = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, int | str]:
     if not data.body.strip():
@@ -80,8 +82,7 @@ async def create_comment(
             detail="Пост не найден",
         )
 
-    # API комментариев пока без авторизации, автор фиксированный.
-    new_comment = Comment(body=data.body, post_id=post_id, author_id=1)
+    new_comment = Comment(body=data.body, post_id=post_id, author_id=int(user["user_id"]))
     session.add(new_comment)
     await session.commit()
     await session.refresh(new_comment)

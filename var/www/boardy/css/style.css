@@ -16,7 +16,7 @@
   --shadow-card: 0 1px 3px rgba(25, 52, 77, 0.08);
   --radius-card: 6px;
   --radius-control: 4px;
-  --container-width: 860px;
+  --container-width: 988px;
   --font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -111,8 +111,8 @@ textarea {
 }
 
 .page-shell {
-  width: min(var(--container-width), calc(100% - 48px));
-  margin: 30px auto 56px;
+  width: min(var(--container-width), calc(100% - 112px));
+  margin: 38px auto 56px;
 }
 
 .content-stack {
@@ -123,7 +123,7 @@ textarea {
 .page-title {
   margin: 0;
   color: var(--color-primary);
-  font-size: 23px;
+  font-size: 28px;
   font-weight: 700;
 }
 
@@ -145,7 +145,7 @@ textarea {
 }
 
 .post-card {
-  padding: 16px 18px 18px;
+  padding: 16px 22px 18px;
 }
 
 .post-card__meta {
@@ -159,7 +159,7 @@ textarea {
 .post-card__author {
   margin: 0;
   color: var(--color-primary);
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -255,8 +255,39 @@ textarea {
   outline: none;
 }
 
+.btn-github {
+  gap: 10px;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-github:hover,
+.btn-github:focus-visible {
+  background: #000;
+  outline: none;
+}
+
+.btn-github__icon {
+  width: 20px;
+  height: 20px;
+  filter: invert(1);
+}
+
 .btn-block {
   width: 100%;
+}
+
+.auth-divider {
+  margin: 16px 0 10px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: none;
 }
 
 .form-card__hint {
@@ -287,17 +318,22 @@ textarea {
 }
 
 .notice {
-  margin-bottom: 16px;
-  padding: 12px 14px;
+  padding: 13px 18px;
   border: 1px solid transparent;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .notice--error {
   background: var(--color-error-bg);
   border-color: var(--color-error-border);
   color: var(--color-danger);
+}
+
+.notice--success {
+  background: #d5f0d9;
+  border-color: var(--color-success-border);
+  color: #236b35;
 }
 
 .empty-state {

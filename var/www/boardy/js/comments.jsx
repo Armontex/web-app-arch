@@ -5,6 +5,7 @@ const POST_ID = 1;
 
 function ItemList() {
   const [items, setItems] = useState([]);
+  const [jwt, setJwt] = useState(null);
   const [text, setText] = useState("");
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
@@ -15,16 +16,39 @@ function ItemList() {
     setItems(data.items);
   };
 
+  const apiHeaders = () => {
+    const headers = { "Content-Type": "application/json" };
+
+    if (jwt) {
+      headers.Authorization = `Bearer ${jwt}`;
+    }
+
+    return headers;
+  };
+
   useEffect(() => {
     load();
   }, []);
 
+  useEffect(() => {
+    fetch("/api/me.php", { credentials: "include" })
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data) => {
+        const token = data ? data.token : null;
+        setJwt(token);
+        window.jwt = token;
+      });
+  }, []);
+
   const add = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || !jwt) return;
 
     await fetch(`${API}/api/posts/${POST_ID}/comments`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders(),
       body: JSON.stringify({ body: text }),
     });
 
@@ -105,7 +129,7 @@ function ItemList() {
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
-        <button className="btn btn-primary" onClick={add}>
+        <button className="btn btn-primary" disabled={!jwt} onClick={add}>
           Отправить
         </button>
       </div>

@@ -49,6 +49,14 @@ include __DIR__ . '/partials/nav.php';
   <section class="content-stack">
     <h1 class="page-title">Все посты</h1>
 
+    <?php if (!empty($_SESSION['oauth_success'])): ?>
+      <?php unset($_SESSION['oauth_success']); ?>
+      <div class="notice notice--success">
+        Вы вошли через GitHub как
+        <strong><?= htmlspecialchars($_SESSION['user_name'] ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></strong>
+      </div>
+    <?php endif; ?>
+
     <?php if (empty($posts)): ?>
       <div class="card empty-state">Постов пока нет.</div>
     <?php else: ?>
