@@ -1,11 +1,29 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, Text, text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey, MetaData, String, Text, text
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 
-from .base import Base
+
+NAMING_CONVENTION = {
+    "ix": "ix_%(table_name)s_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
+
+class Base(DeclarativeBase, MappedAsDataclass):
+    metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
 class User(Base):
@@ -20,19 +38,6 @@ class User(Base):
         init=False,
         server_default=text("CURRENT_TIMESTAMP"),
         nullable=False,
-    )
-
-    posts: Mapped[list["Post"]] = relationship(
-        back_populates="author",
-        default_factory=list,
-        passive_deletes=True,
-        init=False,
-    )
-    comments: Mapped[list["Comment"]] = relationship(
-        back_populates="author",
-        default_factory=list,
-        passive_deletes=True,
-        init=False,
     )
 
 
@@ -51,17 +56,6 @@ class Post(Base):
         init=False,
         server_default=text("CURRENT_TIMESTAMP"),
         nullable=False,
-    )
-
-    author: Mapped["User"] = relationship(
-        back_populates="posts",
-        init=False,
-    )
-    comments: Mapped[list["Comment"]] = relationship(
-        back_populates="post",
-        default_factory=list,
-        passive_deletes=True,
-        init=False,
     )
 
 
@@ -85,5 +79,33 @@ class Comment(Base):
         nullable=False,
     )
 
-    post: Mapped["Post"] = relationship(back_populates="comments", init=False)
-    author: Mapped["User"] = relationship(back_populates="comments", init=False)
+
+def mysql_url() -> str:
+    host = os.getenv("DB__HOST", "127.0.0.1")
+    port = os.getenv("DB__PORT", "3306")
+    user = os.getenv("DB__USER", "boardy")
+    password = os.getenv("DB__PASSWORD", "boardy")
+    name = os.getenv("DB__NAME", "boardy")
+    charset = os.getenv("DB__CHARSET", "utf8mb4")
+
+    return (
+        f"mysql+aiomysql://{user}:{password}@{host}:{port}/{name}"
+        f"?charset={charset}"
+    )
+
+
+def create_engine() -> AsyncEngine:
+    echo = os.getenv("DB__ECHO", "false").lower() in {"1", "true", "yes", "on"}
+    return create_async_engine(mysql_url(), echo=echo)
+
+
+def create_session_factory(
+    engine: AsyncEngine,
+) -> async_sessionmaker[AsyncSession]:
+    return async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+    )

@@ -1,14 +1,29 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import AsyncGenerator
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.infra.db.models import Comment, Post, User
-from src.presentation.deps import get_session
-from src.presentation.schemas import CommentCreate, CommentUpdate
+from database import Comment, Post, User
+
 
 router = APIRouter()
+
+
+class CommentCreate(BaseModel):
+    body: str
+
+
+class CommentUpdate(BaseModel):
+    body: str
+
+
+async def get_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
+    async with request.app.state.session_maker() as session:
+        yield session
 
 
 @router.get("/posts/{post_id}/comments")
@@ -59,13 +74,13 @@ async def create_comment(
         )
 
     post = await session.get(Post, post_id)
-
     if post is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Пост не найден"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пост не найден",
         )
 
-    # TODO: заменить на author_id из JWT-пользователя
+    # API комментариев пока без авторизации, автор фиксированный.
     new_comment = Comment(body=data.body, post_id=post_id, author_id=1)
     session.add(new_comment)
     await session.commit()
