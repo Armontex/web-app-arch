@@ -23,7 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        $password_valid = $user && password_verify($password, $user['password_hash']);
+        $password_valid = (
+            $user
+            && !empty($user['password_hash'])
+            && password_verify($password, $user['password_hash'])
+        );
 
         if (!$password_valid) {
             $error_message = 'Неверный email или пароль.';
@@ -77,6 +81,13 @@ include __DIR__ . '/partials/nav.php';
 
         <button class="btn btn-primary btn-block" type="submit">Войти</button>
       </form>
+
+      <div class="auth-divider">или</div>
+
+      <a class="btn btn-github btn-block" href="/oauth-github.php">
+        <img class="btn-github__icon" src="/img/github-mark.svg" alt="" aria-hidden="true" />
+        Войти через GitHub
+      </a>
 
       <p class="form-card__hint">
         Нет аккаунта?
