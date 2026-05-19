@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, create_engine, create_session_factory
+from routers import ws
 from routers.comments import router as comments_router
-from routers.ws import router as ws_router
 
 
 @asynccontextmanager
@@ -40,9 +40,16 @@ app.add_middleware(
 )
 
 app.include_router(comments_router, prefix="/api")
-app.include_router(ws_router)
+app.include_router(ws.router)
 
 
 @app.get("/status")
 async def status():
     return {"status": "ok"}
+
+
+@app.post("/internal/broadcast")
+async def internal_broadcast(request: Request) -> dict[str, bool]:
+    data = await request.json()
+    await ws.manager.broadcast({"type": "new_post", "post": data})
+    return {"ok": True}
