@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class PostController extends Controller
 {
@@ -35,6 +38,18 @@ class PostController extends Controller
 
         $user = $request->user() ?? User::query()->firstOrFail();
         $post = $user->posts()->create($data);
+
+        try {
+            Http::timeout(2)->post(config('services.fastapi.internal_url').'/internal/broadcast', [
+                'id' => $post->id,
+                'title' => $post->title,
+                'body' => $post->body,
+                'author' => $user->name,
+                'created_at' => $post->created_at->toISOString(),
+            ]);
+        } catch (Throwable $exception) {
+            Log::warning('WS broadcast failed: '.$exception->getMessage());
+        }
 
         return redirect()
             ->route('posts.show', $post)

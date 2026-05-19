@@ -34,6 +34,10 @@ return [
         'redirect' => env('GITHUB_REDIRECT_URI', env('APP_URL').'/auth/github/callback'),
     ],
 
+    'fastapi' => [
+        'internal_url' => env('FASTAPI_INTERNAL_URL', 'http://api:8000'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
