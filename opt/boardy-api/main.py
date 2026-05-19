@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, create_engine, create_session_factory
 from routers.comments import router as comments_router
+from routers.ws import router as ws_router
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ app.add_middleware(
 )
 
 app.include_router(comments_router, prefix="/api")
+app.include_router(ws_router)
 
 
 @app.get("/status")
