@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, MetaData, String, Text, text
+from sqlalchemy import MetaData, String, Text, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -26,59 +26,21 @@ class Base(DeclarativeBase, MappedAsDataclass):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
-class User(Base):
-    __tablename__ = "users"
-    __table_args__ = {"mysql_engine": "InnoDB"}
-
-    id: Mapped[int] = mapped_column(init=False, primary_key=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    github_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        init=False,
-        server_default=text("CURRENT_TIMESTAMP"),
-        nullable=False,
-    )
-
-
-class Post(Base):
-    __tablename__ = "posts"
-    __table_args__ = {"mysql_engine": "InnoDB"}
-
-    id: Mapped[int] = mapped_column(init=False, primary_key=True)
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
-    body: Mapped[str] = mapped_column(Text, nullable=False)
-    author_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        init=False,
-        server_default=text("CURRENT_TIMESTAMP"),
-        nullable=False,
-    )
-
-
 class Comment(Base):
     __tablename__ = "comments"
     __table_args__ = {"mysql_engine": "InnoDB"}
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     body: Mapped[str] = mapped_column(Text, nullable=False)
-    post_id: Mapped[int] = mapped_column(
-        ForeignKey("posts.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    author_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    post_id: Mapped[int] = mapped_column(nullable=False, index=True)
+    author_id: Mapped[int] = mapped_column(nullable=False, index=True)
+    author_name: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         init=False,
         server_default=text("CURRENT_TIMESTAMP"),
         nullable=False,
     )
+    updated_at: Mapped[datetime | None] = mapped_column(init=False, nullable=True)
 
 
 def mysql_url() -> str:
@@ -86,7 +48,7 @@ def mysql_url() -> str:
     port = os.getenv("DB__PORT", "3306")
     user = os.getenv("DB__USER", "boardy")
     password = os.getenv("DB__PASSWORD", "boardy")
-    name = os.getenv("DB__NAME", "boardy")
+    name = os.getenv("DB__API_NAME", os.getenv("DB__NAME", "boardy_api"))
     charset = os.getenv("DB__CHARSET", "utf8mb4")
 
     return (
