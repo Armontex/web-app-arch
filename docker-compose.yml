@@ -84,8 +84,14 @@ services:
       - ./var/www/boardy:/var/www/boardy
     env_file:
       - .env
+    environment:
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
