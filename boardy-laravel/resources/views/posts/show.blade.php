@@ -40,19 +40,21 @@
     <div class="card-body">
       <h2 class="h4 mb-3">Комментарии</h2>
 
-      @forelse ($post->comments as $comment)
-        <div class="border-bottom pb-3 mb-3">
-          <div class="d-flex justify-content-between gap-3 mb-2">
-            <strong>{{ $comment->author->name }}</strong>
-            <time class="text-body-secondary small" datetime="{{ $comment->created_at->toISOString() }}">
-              {{ $comment->created_at->format('d.m.Y H:i') }}
-            </time>
+      <div id="comments-list" class="mb-4">
+        @forelse ($post->comments as $comment)
+          <div class="border-bottom pb-3 mb-3" data-comment-id="{{ $comment->id }}">
+            <div class="d-flex justify-content-between gap-3 mb-2">
+              <strong>{{ $comment->author->name }}</strong>
+              <time class="text-body-secondary small" datetime="{{ $comment->created_at->toISOString() }}">
+                {{ $comment->created_at->format('d.m.Y H:i') }}
+              </time>
+            </div>
+            <p class="mb-0">{{ $comment->body }}</p>
           </div>
-          <p class="mb-0">{{ $comment->body }}</p>
-        </div>
-      @empty
-        <p class="text-body-secondary mb-0">Комментариев пока нет.</p>
-      @endforelse
+        @empty
+          <p id="comments-empty" class="text-body-secondary mb-0">Комментариев пока нет.</p>
+        @endforelse
+      </div>
 
       @auth
         <form class="mt-4" action="{{ route('comments.store') }}" method="post">
@@ -82,4 +84,76 @@
       @endauth
     </div>
   </section>
+@endsection
+
+@section('scripts')
+  <script>
+    const currentPostId = @json($post->id);
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
+
+    function connect() {
+      const ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+
+        if (message.type === 'new_comment' && Number(message.comment?.post_id) === Number(currentPostId)) {
+          appendComment(message.comment);
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(connect, 3000);
+      };
+    }
+
+    function appendComment(comment) {
+      const list = document.getElementById('comments-list');
+
+      if (!list || document.querySelector(`[data-comment-id="${comment.id}"]`)) {
+        return;
+      }
+
+      document.getElementById('comments-empty')?.remove();
+
+      const item = document.createElement('div');
+      item.className = 'border-bottom pb-3 mb-3';
+      item.dataset.commentId = comment.id;
+      item.innerHTML = `
+        <div class="d-flex justify-content-between gap-3 mb-2">
+          <strong>${escapeHtml(comment.author)}</strong>
+          <time class="text-body-secondary small" datetime="${escapeHtml(comment.created_at)}">
+            ${formatDate(comment.created_at)}
+          </time>
+        </div>
+        <p class="mb-0">${escapeHtml(comment.body)}</p>
+      `;
+
+      list.append(item);
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement('div');
+      div.textContent = value ?? '';
+      return div.innerHTML;
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return '';
+      }
+
+      return date.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+
+    connect();
+  </script>
 @endsection

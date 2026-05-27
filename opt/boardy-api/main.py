@@ -51,5 +51,10 @@ async def status():
 @app.post("/internal/broadcast")
 async def internal_broadcast(request: Request) -> dict[str, bool]:
     data = await request.json()
-    await ws.manager.broadcast({"type": "new_post", "post": data})
+
+    if "type" in data:
+        await ws.manager.broadcast(data)
+    else:
+        await ws.manager.broadcast({"type": "new_post", "post": data})
+
     return {"ok": True}

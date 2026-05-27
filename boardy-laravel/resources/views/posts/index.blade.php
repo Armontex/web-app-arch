@@ -44,7 +44,7 @@
 
 @section('scripts')
   <script>
-    const wsUrl = @json(app()->environment('production') ? 'wss://api.'.parse_url(config('app.url'), PHP_URL_HOST).'/ws' : 'ws://localhost:8001/ws');
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`;
 
     function connect() {
       const ws = new WebSocket(wsUrl);
