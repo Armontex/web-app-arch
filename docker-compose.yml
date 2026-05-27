@@ -45,6 +45,7 @@ services:
       - .env
     environment:
       DB__API_NAME: boardy_api
+      FRONTEND_ORIGIN: http://localhost
     restart: unless-stopped
     depends_on:
       db:
