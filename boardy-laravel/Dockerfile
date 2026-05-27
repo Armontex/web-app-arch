@@ -25,9 +25,11 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-in
 
 COPY . .
 RUN composer dump-autoload --optimize \
+    && chmod +x docker-entrypoint.sh \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 9000
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["php-fpm"]
