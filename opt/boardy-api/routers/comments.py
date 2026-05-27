@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user
-from database import Comment, Post, User
+from database import Comment
 
 
 router = APIRouter()
@@ -16,6 +16,7 @@ router = APIRouter()
 
 class CommentCreate(BaseModel):
     body: str
+    author_name: str
 
 
 class CommentUpdate(BaseModel):
@@ -38,10 +39,9 @@ async def get_comments(
             Comment.body,
             Comment.post_id,
             Comment.author_id,
+            Comment.author_name,
             Comment.created_at,
-            User.name.label("author_name"),
         )
-        .join(User, Comment.author_id == User.id)
         .where(Comment.post_id == post_id)
         .order_by(Comment.created_at)
     )
@@ -75,14 +75,13 @@ async def create_comment(
             detail="Текст пустой",
         )
 
-    post = await session.get(Post, post_id)
-    if post is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пост не найден",
-        )
-
-    new_comment = Comment(body=data.body, post_id=post_id, author_id=int(user["user_id"]))
+    author_id = int(user.get("sub") or user.get("user_id"))
+    new_comment = Comment(
+        body=data.body,
+        post_id=post_id,
+        author_id=author_id,
+        author_name=data.author_name,
+    )
     session.add(new_comment)
     await session.commit()
     await session.refresh(new_comment)
