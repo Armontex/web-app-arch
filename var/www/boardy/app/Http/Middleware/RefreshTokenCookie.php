@@ -10,6 +10,17 @@ class RefreshTokenCookie
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (
+            $request->is('oauth/token')
+            && $request->input('grant_type') === 'refresh_token'
+            && ! $request->filled('refresh_token')
+            && $request->cookies->has('refresh_token')
+        ) {
+            $request->merge([
+                'refresh_token' => $request->cookie('refresh_token'),
+            ]);
+        }
+
         $response = $next($request);
 
         if (! $request->is('oauth/token') || ! $response->isOk()) {

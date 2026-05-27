@@ -2,6 +2,9 @@ import { generateChallenge, generateState, generateVerifier } from './pkce.js';
 
 const CLIENT_ID = 'a1dffde3-6309-4cd8-b89e-9be5292c6d2a';
 const REDIRECT_URI = `${window.location.origin}/oauth/callback`;
+const API_ORIGIN = window.location.hostname === 'localhost'
+    ? 'http://127.0.0.1:8001'
+    : `https://api.${window.location.hostname}`;
 
 export async function startLogin() {
     const verifier = generateVerifier();
@@ -73,6 +76,78 @@ export async function handleCallback() {
     return data;
 }
 
+export async function refreshToken() {
+    const response = await fetch('/oauth/token', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            client_id: CLIENT_ID,
+        }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || data.error_description || 'Refresh failed');
+    }
+
+    sessionStorage.setItem('access_token', data.access_token);
+
+    return data.access_token;
+}
+
+export async function authedFetch(url, options = {}) {
+    const token = sessionStorage.getItem('access_token');
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (response.status !== 401) {
+        return response;
+    }
+
+    const newToken = await refreshToken();
+
+    return fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${newToken}`,
+        },
+    });
+}
+
+export async function silentRefreshDemo() {
+    sessionStorage.setItem('access_token', 'expired.invalid.token');
+
+    const response = await authedFetch(`${API_ORIGIN}/api/posts/1/comments`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            body: 'Silent refresh demo',
+            author_name: 'Silent Refresh User',
+        }),
+    });
+
+    const data = await response.json();
+    console.log('Silent refresh demo completed', {
+        status: response.status,
+        data,
+    });
+
+    return data;
+}
+
 document.querySelectorAll('[data-oauth-login]').forEach((button) => {
     button.addEventListener('click', (event) => {
         event.preventDefault();
@@ -93,6 +168,9 @@ if (window.location.pathname === '/oauth/callback') {
 }
 
 window.boardyAuth = {
+    authedFetch,
     handleCallback,
+    refreshToken,
+    silentRefreshDemo,
     startLogin,
 };
