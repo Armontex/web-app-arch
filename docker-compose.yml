@@ -17,6 +17,8 @@ services:
     build:
       context: ./boardy-laravel
       dockerfile: Dockerfile
+    volumes:
+      - laravel_storage:/var/www/html/storage
     networks:
       - boardy_net
 
@@ -42,13 +44,22 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_USER: ${DB__USER}
       MYSQL_PASSWORD: ${DB__PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
     networks:
       - boardy_net
 
   redis:
     image: redis:7-alpine
+    volumes:
+      - redis_data:/data
     networks:
       - boardy_net
+
+volumes:
+  mysql_data:
+  redis_data:
+  laravel_storage:
 
 networks:
   boardy_net:
