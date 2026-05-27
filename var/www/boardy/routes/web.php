@@ -20,6 +20,8 @@ Route::post('comments', [CommentController::class, 'store'])
     ->middleware('auth')
     ->name('comments.store');
 
+Route::view('/oauth/callback', 'auth.oauth.callback')->name('oauth.callback');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
