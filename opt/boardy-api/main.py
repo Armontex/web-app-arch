@@ -4,7 +4,7 @@ import json
 import logging
 import os
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 from sqlalchemy import update
@@ -131,10 +131,3 @@ app.include_router(ws.router)
 @app.get("/status")
 async def status():
     return {"status": "ok"}
-
-
-@app.post("/internal/broadcast")
-async def internal_broadcast(request: Request) -> dict[str, bool]:
-    data = await request.json()
-    await ws.manager.broadcast({"type": "new_post", "post": data})
-    return {"ok": True}
