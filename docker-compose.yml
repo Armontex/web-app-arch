@@ -57,7 +57,7 @@ services:
       - .env
     environment:
       DB__API_NAME: boardy_api
-      FRONTEND_ORIGINS: http://localhost,http://localhost:8000
+      FRONTEND_ORIGINS: http://localhost,http://localhost:8000,http://localhost:8002,http://127.0.0.1:8000,http://127.0.0.1:8002
       REDIS_URL: redis://redis:6379/0
     restart: unless-stopped
     depends_on:

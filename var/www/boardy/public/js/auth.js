@@ -2,7 +2,7 @@ import { generateChallenge, generateState, generateVerifier } from './pkce.js';
 
 const CLIENT_ID = 'a1dffde3-6309-4cd8-b89e-9be5292c6d2a';
 const REDIRECT_URI = `${window.location.origin}/oauth/callback`;
-const API_ORIGIN = window.location.hostname === 'localhost'
+const API_ORIGIN = ['localhost', '127.0.0.1'].includes(window.location.hostname)
     ? 'http://127.0.0.1:8001'
     : `https://api.${window.location.hostname}`;
 
