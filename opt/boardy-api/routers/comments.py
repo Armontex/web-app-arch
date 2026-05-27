@@ -74,13 +74,18 @@ async def create_comment(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Текст пустой",
         )
+    if not data.author_name.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Имя автора пустое",
+        )
 
     author_id = int(user.get("sub") or user.get("user_id"))
     new_comment = Comment(
         body=data.body,
         post_id=post_id,
         author_id=author_id,
-        author_name=data.author_name,
+        author_name=data.author_name.strip(),
     )
     session.add(new_comment)
     await session.commit()
@@ -88,6 +93,9 @@ async def create_comment(
 
     return {
         "id": new_comment.id,
+        "post_id": new_comment.post_id,
+        "author_id": new_comment.author_id,
+        "author_name": new_comment.author_name,
         "body": new_comment.body,
         "status": "created",
     }
