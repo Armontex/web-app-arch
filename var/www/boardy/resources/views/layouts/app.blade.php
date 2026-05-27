@@ -46,6 +46,7 @@
                 @endif
             </main>
         </div>
+        <script type="module" src="{{ asset('js/auth.js') }}"></script>
         @yield('scripts')
     </body>
 </html>

@@ -21,6 +21,7 @@
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 @auth
+                <button type="button" data-oauth-login class="me-4 text-sm text-gray-600 hover:text-gray-900">Войти</button>
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -53,7 +54,7 @@
                 </x-dropdown>
                 @else
                     <div class="space-x-4">
-                        <a class="text-sm text-gray-600 hover:text-gray-900" href="{{ route('login') }}">Вход</a>
+                        <button type="button" data-oauth-login class="text-sm text-gray-600 hover:text-gray-900">Войти</button>
                         <a class="text-sm text-gray-600 hover:text-gray-900" href="{{ route('register') }}">Регистрация</a>
                     </div>
                 @endauth
@@ -106,9 +107,9 @@
         </div>
         @else
             <div class="pt-4 pb-1 border-t border-gray-200">
-                <x-responsive-nav-link :href="route('login')">
+                <button type="button" data-oauth-login class="block w-full px-4 py-2 text-start text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50">
                     Вход
-                </x-responsive-nav-link>
+                </button>
                 <x-responsive-nav-link :href="route('register')">
                     Регистрация
                 </x-responsive-nav-link>
