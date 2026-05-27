@@ -7,8 +7,10 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
-from database import Base, create_engine, create_session_factory
+from database import Base, Comment, create_engine, create_session_factory
 from routers import ws
 from routers.comments import router as comments_router
 
@@ -16,25 +18,58 @@ from routers.comments import router as comments_router
 logger = logging.getLogger("uvicorn.error")
 
 
-async def subscribe_to_new_posts(redis_url: str) -> None:
+async def handle_user_renamed(
+    session_maker: async_sessionmaker[AsyncSession],
+    event: dict[str, object],
+) -> None:
+    user_id = int(event["user_id"])
+    name = str(event["name"])
+
+    async with session_maker() as session:
+        result = await session.execute(
+            update(Comment)
+            .where(Comment.author_id == user_id)
+            .values(author_name=name)
+        )
+        await session.commit()
+
+    logger.info(
+        "Updated comments author_name for user %s: %s rows",
+        user_id,
+        result.rowcount,
+    )
+
+
+async def subscribe_to_redis_events(
+    redis_url: str,
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
     redis = Redis.from_url(redis_url, decode_responses=True)
     pubsub = redis.pubsub()
 
     try:
-        await pubsub.subscribe("new_post")
-        logger.info("Subscribed to Redis channel: new_post")
+        await pubsub.subscribe("new_post", "user.renamed")
+        logger.info("Subscribed to Redis channels: new_post, user.renamed")
 
         async for message in pubsub.listen():
             if message["type"] != "message":
                 continue
 
-            post = json.loads(message["data"])
-            logger.info("Received Redis new_post event: %s", post.get("id"))
-            await ws.manager.broadcast({"type": "new_post", "post": post})
+            event = json.loads(message["data"])
+
+            if message["channel"] == "new_post":
+                logger.info("Received Redis new_post event: %s", event.get("id"))
+                await ws.manager.broadcast({"type": "new_post", "post": event})
+            elif message["channel"] == "user.renamed":
+                logger.info(
+                    "Received Redis user.renamed event: %s",
+                    event.get("user_id"),
+                )
+                await handle_user_renamed(session_maker, event)
     except asyncio.CancelledError:
         raise
     finally:
-        await pubsub.unsubscribe("new_post")
+        await pubsub.unsubscribe("new_post", "user.renamed")
         await pubsub.close()
         await redis.aclose()
 
@@ -50,7 +85,10 @@ async def lifespan(app: FastAPI):
     app.state.session_maker = session_maker
     app.state.engine = engine
     app.state.redis_subscriber = asyncio.create_task(
-        subscribe_to_new_posts(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+        subscribe_to_redis_events(
+            os.getenv("REDIS_URL", "redis://redis:6379/0"),
+            session_maker,
+        )
     )
 
     try:
