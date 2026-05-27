@@ -19,6 +19,11 @@ services:
       dockerfile: Dockerfile
     volumes:
       - laravel_storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - boardy_net
 
@@ -35,6 +40,11 @@ services:
       DB__CHARSET: utf8mb4
       DB__ECHO: "False"
       REDIS_HOST: redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - boardy_net
 
@@ -46,6 +56,10 @@ services:
       MYSQL_PASSWORD: ${DB__PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
     networks:
       - boardy_net
 
@@ -53,6 +67,10 @@ services:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
     networks:
       - boardy_net
 
