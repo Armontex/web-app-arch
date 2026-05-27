@@ -1,12 +1,42 @@
 from contextlib import asynccontextmanager
+import asyncio
+import json
+import logging
 import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from redis.asyncio import Redis
 
 from database import Base, create_engine, create_session_factory
 from routers import ws
 from routers.comments import router as comments_router
+
+
+logger = logging.getLogger("uvicorn.error")
+
+
+async def subscribe_to_new_posts(redis_url: str) -> None:
+    redis = Redis.from_url(redis_url, decode_responses=True)
+    pubsub = redis.pubsub()
+
+    try:
+        await pubsub.subscribe("new_post")
+        logger.info("Subscribed to Redis channel: new_post")
+
+        async for message in pubsub.listen():
+            if message["type"] != "message":
+                continue
+
+            post = json.loads(message["data"])
+            logger.info("Received Redis new_post event: %s", post.get("id"))
+            await ws.manager.broadcast({"type": "new_post", "post": post})
+    except asyncio.CancelledError:
+        raise
+    finally:
+        await pubsub.unsubscribe("new_post")
+        await pubsub.close()
+        await redis.aclose()
 
 
 @asynccontextmanager
@@ -19,10 +49,19 @@ async def lifespan(app: FastAPI):
 
     app.state.session_maker = session_maker
     app.state.engine = engine
+    app.state.redis_subscriber = asyncio.create_task(
+        subscribe_to_new_posts(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+    )
 
     try:
         yield
     finally:
+        app.state.redis_subscriber.cancel()
+        try:
+            await app.state.redis_subscriber
+        except asyncio.CancelledError:
+            pass
+
         await engine.dispose()
 
 

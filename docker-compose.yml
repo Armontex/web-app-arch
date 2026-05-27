@@ -58,9 +58,12 @@ services:
     environment:
       DB__API_NAME: boardy_api
       FRONTEND_ORIGINS: http://localhost,http://localhost:8000
+      REDIS_URL: redis://redis:6379/0
     restart: unless-stopped
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test:
