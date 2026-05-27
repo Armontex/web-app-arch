@@ -23,6 +23,10 @@ class CommentUpdate(BaseModel):
     body: str
 
 
+def current_user_id(user: dict[str, object]) -> int:
+    return int(user.get("sub") or user.get("user_id"))
+
+
 async def get_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
     async with request.app.state.session_maker() as session:
         yield session
@@ -80,7 +84,7 @@ async def create_comment(
             detail="Имя автора пустое",
         )
 
-    author_id = int(user.get("sub") or user.get("user_id"))
+    author_id = current_user_id(user)
     new_comment = Comment(
         body=data.body,
         post_id=post_id,
@@ -105,6 +109,7 @@ async def create_comment(
 async def update_comment(
     comment_id: int,
     data: CommentUpdate,
+    user: dict[str, object] = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, int | str]:
     if not data.body.strip():
@@ -118,6 +123,11 @@ async def update_comment(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Не найден",
+        )
+    if comment.author_id != current_user_id(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your comment",
         )
 
     comment.body = data.body
@@ -134,6 +144,7 @@ async def update_comment(
 @router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_comment(
     comment_id: int,
+    user: dict[str, object] = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     comment = await session.get(Comment, comment_id)
@@ -141,6 +152,11 @@ async def delete_comment(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Не найден",
+        )
+    if comment.author_id != current_user_id(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not your comment",
         )
 
     await session.delete(comment)
