@@ -25,6 +25,54 @@ export async function startLogin() {
     window.location.href = `/oauth/authorize?${params.toString()}`;
 }
 
+export async function handleCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+
+    if (!code) {
+        return null;
+    }
+
+    const savedState = sessionStorage.getItem('oauth_state');
+    if (!savedState || state !== savedState) {
+        throw new Error('Invalid OAuth state');
+    }
+
+    const verifier = sessionStorage.getItem('pkce_verifier');
+    if (!verifier) {
+        throw new Error('Missing PKCE verifier');
+    }
+
+    const body = new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: CLIENT_ID,
+        redirect_uri: REDIRECT_URI,
+        code,
+        code_verifier: verifier,
+    });
+
+    const response = await fetch('/oauth/token', {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body,
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.message || data.error_description || 'Token exchange failed');
+    }
+
+    sessionStorage.removeItem('pkce_verifier');
+    sessionStorage.removeItem('oauth_state');
+    sessionStorage.setItem('access_token', data.access_token);
+
+    return data;
+}
+
 document.querySelectorAll('[data-oauth-login]').forEach((button) => {
     button.addEventListener('click', (event) => {
         event.preventDefault();
@@ -32,6 +80,19 @@ document.querySelectorAll('[data-oauth-login]').forEach((button) => {
     });
 });
 
+if (window.location.pathname === '/oauth/callback') {
+    handleCallback()
+        .then((data) => {
+            if (data) {
+                console.log('OAuth token exchange completed', data);
+            }
+        })
+        .catch((error) => {
+            console.error('OAuth callback failed', error);
+        });
+}
+
 window.boardyAuth = {
+    handleCallback,
     startLogin,
 };
