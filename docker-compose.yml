@@ -1,78 +1,55 @@
 services:
   nginx:
-    image: nginx:1.18
+    image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./var/www/boardy:/var/www/boardy:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./boardy-laravel:/var/www/html:ro
     depends_on:
-      php:
-        condition: service_started
-      api:
-        condition: service_healthy
-    restart: unless-stopped
-    stop_grace_period: 1s
+      - laravel
+      - fastapi
+    networks:
+      - boardy_net
 
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB__NAME}
-      MYSQL_USER: ${DB__USER}
-      MYSQL_PASSWORD: ${DB__PASSWORD}
-      MYSQL_ROOT_PASSWORD: root
-    command: --default-authentication-plugin=mysql_native_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-u", "boardy", "-pboardy"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  laravel:
+    build:
+      context: ./boardy-laravel
+      dockerfile: Dockerfile
+    networks:
+      - boardy_net
 
-  api:
+  fastapi:
     build:
       context: ./opt/boardy-api
       dockerfile: Dockerfile
-    ports:
-      - "8001:8000"
-    env_file:
-      - .env
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:8000/status')",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    stop_grace_period: 1s
+    environment:
+      DB__HOST: mysql
+      DB__PORT: 3306
+      DB__USER: ${DB__USER}
+      DB__PASSWORD: ${DB__PASSWORD}
+      DB__NAME: boardy_api
+      DB__CHARSET: utf8mb4
+      DB__ECHO: "False"
+      REDIS_HOST: redis
+    networks:
+      - boardy_net
 
-  php:
-    build:
-      context: ./docker/php
-      dockerfile: Dockerfile
-    volumes:
-      - ./var/www/boardy:/var/www/boardy
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: ${DB__USER}
+      MYSQL_PASSWORD: ${DB__PASSWORD}
+    networks:
+      - boardy_net
 
-volumes:
-  mysql_data:
+  redis:
+    image: redis:7-alpine
+    networks:
+      - boardy_net
+
+networks:
+  boardy_net:
+    driver: bridge
