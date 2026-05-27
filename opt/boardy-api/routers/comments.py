@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -151,12 +151,16 @@ async def update_comment(
     return {**payload, "status": "updated"}
 
 
-@router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/comments/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
 async def delete_comment(
     comment_id: int,
     user: dict[str, object] = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> None:
+) -> Response:
     comment = await session.get(Comment, comment_id)
     if comment is None:
         raise HTTPException(
@@ -173,3 +177,5 @@ async def delete_comment(
     await session.delete(comment)
     await session.commit()
     await ws.manager.broadcast({"type": "comment.deleted", "comment": payload})
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

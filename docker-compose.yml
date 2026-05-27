@@ -1,67 +1,51 @@
 services:
   nginx:
-    image: nginx:1.18
+    image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./var/www/boardy:/var/www/boardy:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./boardy-laravel:/var/www/html:ro
     depends_on:
-      php:
-        condition: service_started
-      api:
+      - laravel
+      - fastapi
+    networks:
+      - boardy_net
+
+  laravel:
+    build:
+      context: ./boardy-laravel
+      dockerfile: Dockerfile
+    env_file:
+      - ./boardy-laravel/.env
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    depends_on:
+      mysql:
         condition: service_healthy
-    restart: unless-stopped
-    stop_grace_period: 1s
+      redis:
+        condition: service_healthy
+    networks:
+      - boardy_net
 
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB__NAME}
-      MYSQL_USER: ${DB__USER}
-      MYSQL_PASSWORD: ${DB__PASSWORD}
-      MYSQL_ROOT_PASSWORD: root
-    command: --default-authentication-plugin=mysql_native_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-u", "boardy", "-pboardy"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  api:
+  fastapi:
     build:
       context: ./opt/boardy-api
       dockerfile: Dockerfile
-    ports:
-      - "8001:8000"
-    env_file:
-      - .env
     environment:
+      DB__HOST: mysql
+      DB__PORT: 3306
+      DB__USER: ${DB_USER}
+      DB__PASSWORD: ${DB_PASSWORD}
       DB__API_NAME: boardy_api
-      FRONTEND_ORIGINS: http://localhost,http://localhost:8000,http://localhost:8002,http://127.0.0.1:8000,http://127.0.0.1:8002
+      DB__CHARSET: utf8mb4
+      DB__ECHO: "False"
+      FRONTEND_ORIGINS: http://localhost,http://127.0.0.1
+      REDIS_HOST: redis
       REDIS_URL: redis://redis:6379/0
-    restart: unless-stopped
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -77,27 +61,42 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-    stop_grace_period: 1s
+    networks:
+      - boardy_net
 
-  php:
-    build:
-      context: ./docker/php
-      dockerfile: Dockerfile
-    volumes:
-      - ./var/www/boardy:/var/www/boardy
-    env_file:
-      - .env
+  mysql:
+    image: mysql:8
     environment:
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+    networks:
+      - boardy_net
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+    networks:
+      - boardy_net
 
 volumes:
   mysql_data:
   redis_data:
+  laravel_storage:
+
+networks:
+  boardy_net:
+    driver: bridge
