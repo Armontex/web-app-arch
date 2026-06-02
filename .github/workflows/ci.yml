@@ -26,3 +26,35 @@ jobs:
         run: |
           python3 -m compileall opt/boardy-api -q \
             -x '(\.venv|__pycache__)'
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare env files
+        run: |
+          cp .env.example .env
+          cp boardy-laravel/.env.example boardy-laravel/.env
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start stack
+        run: docker compose up -d
+
+      - name: Smoke endpoints
+        run: |
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1/health && \
+              curl -fsS http://127.0.0.1/api/health && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1/health
+          curl -fsS http://127.0.0.1/api/health
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
