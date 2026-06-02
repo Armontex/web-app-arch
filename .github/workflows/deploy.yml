@@ -126,14 +126,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare image names
+        run: echo "IMAGE_PREFIX_LC=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
       - name: Build and push Laravel image
         uses: docker/build-push-action@v5
         with:
           context: boardy-laravel
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}-php:${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}-php:latest
+            ${{ env.IMAGE_PREFIX_LC }}-php:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX_LC }}-php:latest
 
       - name: Build and push FastAPI image
         uses: docker/build-push-action@v5
@@ -141,8 +144,8 @@ jobs:
           context: opt/boardy-api
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}-api:latest
+            ${{ env.IMAGE_PREFIX_LC }}-api:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX_LC }}-api:latest
 
   deploy:
     runs-on: ubuntu-latest
