@@ -91,6 +91,7 @@ jobs:
         working-directory: boardy-laravel
         env:
           APP_ENV: testing
+          APP_KEY: base64:FSwQlMJIP2vUZRsnrltE0KmuOZBnma5VRkRXN3Ulb90=
           DB_CONNECTION: sqlite
           DB_DATABASE: ":memory:"
         run: php artisan test --filter=HealthTest
