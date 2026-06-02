@@ -10,13 +10,17 @@ services:
     depends_on:
       - laravel
       - fastapi
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     networks:
       - boardy_net
 
   laravel:
-    build:
-      context: ./boardy-laravel
-      dockerfile: Dockerfile
+    image: ghcr.io/armontex/web-app-arch-php:latest
     env_file:
       - ./boardy-laravel/.env
     volumes:
@@ -30,9 +34,7 @@ services:
       - boardy_net
 
   fastapi:
-    build:
-      context: ./opt/boardy-api
-      dockerfile: Dockerfile
+    image: ghcr.io/armontex/web-app-arch-api:latest
     environment:
       DB__HOST: mysql
       DB__PORT: 3306

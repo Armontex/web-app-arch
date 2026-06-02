@@ -133,6 +133,16 @@ async def status():
     return {"status": "ok"}
 
 
+@app.get("/health")
+async def health():
+    return {"ok": True}
+
+
+@app.get("/api/health")
+async def api_health():
+    return {"ok": True}
+
+
 @app.post("/internal/broadcast")
 async def internal_broadcast(request: Request) -> dict[str, bool]:
     data = await request.json()
