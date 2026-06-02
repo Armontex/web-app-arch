@@ -20,9 +20,7 @@ services:
       - boardy_net
 
   laravel:
-    build:
-      context: ./boardy-laravel
-      dockerfile: Dockerfile
+    image: ghcr.io/armontex/web-app-arch-php:latest
     env_file:
       - ./boardy-laravel/.env
     volumes:
@@ -36,9 +34,7 @@ services:
       - boardy_net
 
   fastapi:
-    build:
-      context: ./opt/boardy-api
-      dockerfile: Dockerfile
+    image: ghcr.io/armontex/web-app-arch-api:latest
     environment:
       DB__HOST: mysql
       DB__PORT: 3306
