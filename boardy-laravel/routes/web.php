@@ -10,6 +10,10 @@ Route::get('/', function () {
     return redirect()->route('posts.index');
 });
 
+Route::get('/health', function () {
+    return response()->json(['ok' => true]);
+});
+
 Route::get('/dashboard', function () {
     return redirect()->route('posts.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
