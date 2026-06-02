@@ -10,6 +10,12 @@ services:
     depends_on:
       - laravel
       - fastapi
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     networks:
       - boardy_net
 
