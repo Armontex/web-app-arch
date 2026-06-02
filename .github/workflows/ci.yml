@@ -48,12 +48,18 @@ jobs:
       - name: Smoke endpoints
         run: |
           for i in {1..30}; do
-            curl -fsS http://127.0.0.1/health && \
-              curl -fsS http://127.0.0.1/api/health && break
+            docker compose exec -T nginx wget -qO- http://127.0.0.1/health && \
+              docker compose exec -T nginx wget -qO- http://127.0.0.1/api/health && break
             sleep 2
           done
-          curl -fsS http://127.0.0.1/health
-          curl -fsS http://127.0.0.1/api/health
+          docker compose exec -T nginx wget -S -O- http://127.0.0.1/health
+          docker compose exec -T nginx wget -S -O- http://127.0.0.1/api/health
+
+      - name: Dump compose diagnostics
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail=120 nginx laravel fastapi mysql redis
 
       - name: Tear down
         if: always()
